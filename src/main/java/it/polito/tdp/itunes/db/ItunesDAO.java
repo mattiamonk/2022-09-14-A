@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.jgrapht.alg.util.Pair;
+
 import it.polito.tdp.itunes.model.Album;
 import it.polito.tdp.itunes.model.Artist;
 import it.polito.tdp.itunes.model.Genre;
@@ -18,16 +21,26 @@ import it.polito.tdp.itunes.model.Track;
 public class ItunesDAO {
 	
 	public List<Album> getAllAlbums(){
-		final String sql = "SELECT * FROM Album";
+		return getAlbumsWithDuration(0.0) ;
+	}
+	
+	
+	public List<Album> getAlbumsWithDuration(Double duration){
+		final String sql = "SELECT album.*, SUM(track.Milliseconds) AS duration "
+				+ "FROM album, track "
+				+ "WHERE album.AlbumId = track.AlbumId "
+				+ "GROUP BY album.AlbumId "
+				+ "HAVING duration >= ?";
 		List<Album> result = new LinkedList<>();
 		
 		try {
 			Connection conn = DBConnect.getConnection();
 			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, (int)(duration*60*1000));
 			ResultSet res = st.executeQuery();
 
 			while (res.next()) {
-				result.add(new Album(res.getInt("AlbumId"), res.getString("Title"), 0.0));
+				result.add(new Album(res.getInt("AlbumId"), res.getString("Title"), res.getDouble("duration")/60/1000));
 			}
 			conn.close();
 		} catch (SQLException e) {
@@ -36,6 +49,39 @@ public class ItunesDAO {
 		}
 		return result;
 	}
+	
+	public List<Pair<Integer, Integer>> getCompatibleAlbums() {
+		String sql = "SELECT DISTINCTROW a1.AlbumId AS id1, a2.AlbumId AS id2 "
+				+ "FROM album a1, track t1, album a2, track t2, "
+				+ "playlisttrack pt1, playlisttrack pt2 "
+				+ "WHERE a1.AlbumId=t1.AlbumId "
+				+ "AND pt1.TrackId=t1.TrackId "
+				+ "AND a2.AlbumId=t2.AlbumId "
+				+ "AND pt2.TrackId=t2.TrackId "
+				+ "AND pt1.PlaylistId=pt2.PlaylistId" ;
+		
+		List<Pair<Integer, Integer>> result = new ArrayList<>() ;
+		
+		try {
+			Connection conn = DBConnect.getConnection() ;
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				result.add( new Pair<Integer,Integer>(
+						res.getInt("id1"),
+						res.getInt("id2"))) ; 
+			}
+			conn.close() ;
+			return result ;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+	}
+
 	
 	public List<Artist> getAllArtists(){
 		final String sql = "SELECT * FROM Artist";
