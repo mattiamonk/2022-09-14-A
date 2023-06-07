@@ -96,6 +96,29 @@ public class FXMLController {
 
     @FXML
     void doEstraiSet(ActionEvent event) {
+    	
+    	Album a1 = cmbA1.getValue() ;
+    	if(a1==null) {
+    		txtResult.appendText("Seleziona un album\n");
+    		return ;
+    	}
+
+    	String dTotS = txtX.getText() ;
+    	if(dTotS.equals("")) {
+    		txtResult.appendText("Specificare durata totale\n");
+    		return ;
+    	}
+    	double dTot ;
+    	try {
+    		dTot = Double.parseDouble(dTotS) ;
+    	} catch(NumberFormatException e) {
+    		txtResult.appendText("Formato numero dTOT errato\n");
+    		return ;
+    	}
+    	
+    	Set<Album> ottimi = model.ricercaSetMassimo(a1, dTot);
+    	
+    	txtResult.appendText(ottimi+"\n");
 
     }
 
