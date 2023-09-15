@@ -139,4 +139,64 @@ public class ItunesDAO {
 		}
 		return result;
 	}
+	
+	public List<Album> getVertici(Double minuti){
+		String sql = "SELECT a.*, SUM(t.Milliseconds/1000/60) AS durata "
+				+ "FROM album a , track t "
+				+ "WHERE a.AlbumId=t.AlbumId "
+				+ "GROUP BY a.AlbumId "
+				+ "HAVING SUM(t.Milliseconds/1000/60)>?";
+		
+		List<Album> result = new ArrayList<Album>();
+		
+				try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+		
+			st.setDouble(1,minuti);
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+				result.add(new Album(res.getInt("AlbumId"), res.getString("Title"), res.getDouble("durata")));
+				
+			}
+			
+			conn.close();
+			return result;
+			
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+			
+		}
+
+		
+	}
+	
+	
+	
+	
+	public int calcoloArchi(Album a1, Album a2) {
+		String sql = "SELECT COUNT( DISTINCT  t1.AlbumId, t2.AlbumId, t1.Name, t2.name) AS count "
+				+ "FROM track t1, playlisttrack p1, track t2, playlisttrack p2 "
+				+ "WHERE t1.TrackId= p1.TrackId AND t2.TrackId=p2.TrackId AND p1.PlaylistId=p2.PlaylistId AND t1.AlbumId <> t2.AlbumId AND t1.AlbumId=? AND t2.AlbumId=?" ;
+		
+		Connection conn = DBConnect.getConnection() ;
+		try {
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, a1.getAlbumId());
+			st.setInt(2, a2.getAlbumId());
+			
+			ResultSet res = st.executeQuery() ;
+			
+			res.first();
+			int verifica = res.getInt("count");
+			conn.close();
+			return verifica ;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
+
 }
